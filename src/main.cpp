@@ -24,18 +24,6 @@ Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS3472
 
 float facteurAcceleration;
 
-int Start = 0;
-int Bumper3 = 0;
-int Bumper2 = 0;
-float Distactuel = 0;
-int Distvoulu = 0;
-int AngleActuel = 0;
-float VitesseactuelG = 0;
-float VitesseactuelD = 0;
-float VitesseactuelG2 = 0;
-float VitesseactuelD2 = 0;
-int32_t EncoderG = 0;
-int32_t EncoderD = 0;
 
 float distTotMotDroite = 0;
 float distTotMotGauche = 0;
@@ -76,7 +64,9 @@ float LireDistance(int capteur) //capteur 0 = GAUCHE. capteur 1 = DROIT
 
 int Tourner(int dir, int Angle) //dir = -1 pour tourner a gauche et dir = 1 pour tourner à droite
 {
-  AngleActuel = 0;
+  int AngleActuel = 0;
+  int32_t EncoderG = 0;
+  int32_t EncoderD = 0;
 
   ENCODER_ReadReset(0);
   ENCODER_ReadReset(1);
@@ -114,6 +104,9 @@ int Tourner(int dir, int Angle) //dir = -1 pour tourner a gauche et dir = 1 pour
 
 int Mouvement(float dist)
 {
+  int32_t EncoderG = 0;
+  int32_t EncoderD = 0;
+  float Distactuel = 0;
   double accel = 0;
   double distAccel = 30;
 
