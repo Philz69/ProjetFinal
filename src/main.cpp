@@ -20,10 +20,11 @@ Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS3472
 #define greenpin 5
 #define bluepin 6
 
+#define BUZZER 7
+
 #define commonAnode true
 
 float facteurAcceleration;
-
 
 float distTotMotDroite = 0;
 float distTotMotGauche = 0;
@@ -46,6 +47,9 @@ void setup()
   pinMode(redpin, OUTPUT);
   pinMode(greenpin, OUTPUT);
   pinMode(bluepin, OUTPUT);
+
+  pinMode(BUZZER, OUTPUT);
+
   delay(1500);
   MOTOR_SetSpeed(0, 0); // Moteur gauche
   MOTOR_SetSpeed(1, 0); // Moteur droit
@@ -53,6 +57,24 @@ void setup()
 
 void loop()
 {
+  if(ROBUS_IsBumper(1))
+  {
+    tone(BUZZER, 1000);
+    delay(1000);
+    tone(BUZZER, 0);
+    delay(1000);
+    tone(BUZZER, 1000);
+
+    // AX_BuzzerON();
+  }
+  else
+  {
+    tone(BUZZER, 0);
+    // AX_BuzzerOFF();
+  }
+
+
+  
 }
 
 float LireDistance(int capteur) //capteur 0 = GAUCHE. capteur 1 = DROIT
