@@ -59,18 +59,18 @@ void loop()
 {
   if(ROBUS_IsBumper(1))
   {
-    tone(BUZZER, 1000);
-    delay(1000);
-    tone(BUZZER, 0);
-    delay(1000);
-    tone(BUZZER, 1000);
+    // tone(BUZZER, 1000);
+    // delay(1000);
+    // tone(BUZZER, 0);
+    // delay(1000);
+    // tone(BUZZER, 1000);
 
-    // AX_BuzzerON();
+    AX_BuzzerON();
   }
   else
   {
-    tone(BUZZER, 0);
-    // AX_BuzzerOFF();
+    // tone(BUZZER, 0);
+    AX_BuzzerOFF();
   }
 
 
