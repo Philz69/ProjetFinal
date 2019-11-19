@@ -5,6 +5,7 @@
 int Mouvement(float dist);
 int Tourner(int dir, int Angle);
 float FonctionPID(float distMotDroite, float distMotGauche);
+void SonnerAlarme();
 
 int lireCouleur();
 float LireDistance(int capteur);
@@ -20,7 +21,7 @@ Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS3472
 #define greenpin 5
 #define bluepin 6
 
-#define BUZZER 7
+#define BUZZER 8
 
 #define commonAnode true
 
@@ -49,6 +50,7 @@ void setup()
   pinMode(bluepin, OUTPUT);
 
   pinMode(BUZZER, OUTPUT);
+  noTone(BUZZER);
 
   delay(1500);
   MOTOR_SetSpeed(0, 0); // Moteur gauche
@@ -59,22 +61,28 @@ void loop()
 {
   if(ROBUS_IsBumper(1))
   {
-    // tone(BUZZER, 1000);
-    // delay(1000);
-    // tone(BUZZER, 0);
-    // delay(1000);
-    // tone(BUZZER, 1000);
-
-    AX_BuzzerON();
+    SonnerAlarme();
   }
-  else
+}
+
+void SonnerAlarme()
+{
+  //Mettre la fonction tant que le robot est en detection et quil tire
+  for (int i = 0; i < 5; i++)
   {
-    // tone(BUZZER, 0);
-    AX_BuzzerOFF();
-  }
+    tone(BUZZER, 1000);
 
+    delay(250);
+    tone(BUZZER, 2000);
 
-  
+    // noTone(BUZZER);
+    // AX_BuzzerON();
+
+    delay(250);
+    // AX_BuzzerOFF();
+    }
+
+    noTone(BUZZER);
 }
 
 float LireDistance(int capteur) //capteur 0 = GAUCHE. capteur 1 = DROIT
