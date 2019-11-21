@@ -8,14 +8,15 @@ float FonctionPID(float distMotDroite, float distMotGauche);
 void Suivre();
 
 void SonnerAlarme();
+void Detection();
 void FaireParcours(int nbTours);
-
 
 int lireCouleur();
 float LireDistance(int capteur);
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
 
 int StrobeEffect(int PulseParSec, int Duree); //Duree est en secondes
+int Action(int PulseParSec, int Duree); //Duree est en secondes
 void LightCTRL(bool OnOff, int PinOut);
 //=============================================================================================
 
@@ -101,7 +102,8 @@ void loop()
   }
   if(ROBUS_IsBumper(3))
   {
-    FaireParcours(3);
+    //FaireParcours(3);
+    Detection();
   }
 
   if(ROBUS_IsBumper(2))
@@ -164,11 +166,32 @@ void FaireParcours(int nbTours)
     }
 }
 
-float LireDistance(int capteur) //capteur 0 = GAUCHE. capteur 1 = DROIT
+float LireDistance(int capteur) //capteur 0 = GAUCHE. capteur 1 = AVANT
 {
   float brut = ROBUS_ReadIR(capteur) / 200.0;
   float distance = pow(0.679454 * -1 * ((brut - 49.8115) / (brut - 0.230724)), (125000.0 / 139017.0));
   return distance;
+}
+
+void Detection(void)
+{
+  float DistAvant = LireDistance(1);
+  float DistGauche = LireDistance(0);
+  Serial.println(DistGauche);
+  if(DistAvant >= 15 && DistAvant <= 60)
+  {
+    Action(2,5);
+  } 
+  if(DistGauche >= 15 && DistGauche <= 60)
+  {
+    Tourner(-1, 90);
+    DistAvant = LireDistance(1);
+    if(DistAvant >= 15 && DistAvant <= 60)
+    {
+      Action(2,5);
+    } 
+  } 
+
 }
 
 int Tourner(int dir, int Angle) //dir = -1 pour tourner a gauche et dir = 1 pour tourner à droite
@@ -422,17 +445,20 @@ void Suivre()
 
 //=============================================================================================
 //fonctions controle des lumieres
-int StrobeEffect(int PulseParSec, int Duree){
-  if(! OutputSetup){
+int StrobeEffect(int PulseParSec, int Duree)
+{
+  if(! OutputSetup)
+  {
     pinMode(LumOutput, OUTPUT);
-    OutputSetup = true;
-    
+    OutputSetup = true;  
     Serial.println("pinout defined \n");
   }
 
   LightCTRL(OFF, LumOutput);
-  for(int t = 0; t < Duree; t++){
-    for(int i = 0; i < PulseParSec; i++){
+  for(int t = 0; t < Duree; t++)
+  {
+    for(int i = 0; i < PulseParSec; i++)
+    {
       LightCTRL(ON, LumOutput);
       Serial.println("strobe on \n");
       delay(1000/(2*PulseParSec));
@@ -444,13 +470,43 @@ int StrobeEffect(int PulseParSec, int Duree){
   }
 }
 
+int Action(int PulseParSec, int Duree)
+{
+  if(! OutputSetup)
+  {
+    pinMode(LumOutput, OUTPUT);
+    OutputSetup = true;  
+    //Serial.println("pinout defined \n");
+  }
+  noTone(BUZZER);
+  LightCTRL(OFF, LumOutput);
+  for(int t = 0; t < Duree; t++)
+  {
+    for(int i = 0; i < PulseParSec; i++)
+    {
+      tone(BUZZER, 1000);
+      LightCTRL(ON, LumOutput);
+      //Serial.println("strobe on \n");
+      delay(1000/(2*PulseParSec));
+
+      noTone(BUZZER);
+      LightCTRL(OFF, LumOutput);
+      //Serial.println("strobe off \n");
+      delay(1000/(2*PulseParSec));
+    }
+  }
+}
+
 void LightCTRL(bool OnOff, int PinOut){
-  if (OnOff){
+  if (OnOff)
+  {
     digitalWrite(PinOut, HIGH);
-    Serial.println("cmd lum on \n");
-  } else {
+    //Serial.println("cmd lum on \n");
+  } 
+  else 
+  {
     digitalWrite(PinOut, LOW);
-    Serial.println("cmd lum off \n");
+    //Serial.println("cmd lum off \n");
   }
 }
 
