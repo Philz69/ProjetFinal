@@ -5,7 +5,10 @@
 int Mouvement(float dist);
 int Tourner(int dir, int Angle);
 float FonctionPID(float distMotDroite, float distMotGauche);
+
 void SonnerAlarme();
+void FaireParcours(int nbTours);
+
 
 int lireCouleur();
 float LireDistance(int capteur);
@@ -63,6 +66,10 @@ void loop()
   {
     SonnerAlarme();
   }
+   if(ROBUS_IsBumper(3))
+  {
+    FaireParcours(3);
+  }
 }
 
 void SonnerAlarme()
@@ -83,6 +90,21 @@ void SonnerAlarme()
     }
 
     noTone(BUZZER);
+}
+
+void FaireParcours(int nbTours)
+{
+    for (int i = 0; i < nbTours; i++)
+    {
+      Mouvement(120);
+      Tourner(1, 87);
+      Mouvement(100);
+      Tourner(1, 87);
+      Mouvement(120);
+      Tourner(1, 87);
+      Mouvement(100);
+      Tourner(1, 88);
+    }
 }
 
 float LireDistance(int capteur) //capteur 0 = GAUCHE. capteur 1 = DROIT
