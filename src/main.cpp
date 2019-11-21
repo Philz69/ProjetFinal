@@ -360,17 +360,17 @@ void Suivre()
   if (capteurG == HIGH)
   {
     MOTOR_SetSpeed(0, 0.1);
-    MOTOR_SetSpeed(1, 0.3);
+    MOTOR_SetSpeed(1, 0.4);
   }
   else if (capteurD == HIGH)
   {
-    MOTOR_SetSpeed(0, 0.3);
+    MOTOR_SetSpeed(0, 0.4);
     MOTOR_SetSpeed(1, 0.1);
   }
   else
   {
-    MOTOR_SetSpeed(0, 0.3);
-    MOTOR_SetSpeed(1, 0.3);
+    MOTOR_SetSpeed(0, 0.15);
+    MOTOR_SetSpeed(1, 0.15);
   }
 
   // if (Capteur >= 5)
