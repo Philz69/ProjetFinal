@@ -14,6 +14,11 @@ int lireCouleur();
 float LireDistance(int capteur);
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
 
+int StrobeEffect(int PulseParSec, int Duree); //Duree est en secondes
+void LightCTRL(bool OnOff, int PinOut);
+//=============================================================================================
+
+//constante
 #define ROUGE 0
 #define VERT 1
 #define BLEU 2
@@ -28,12 +33,20 @@ Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS3472
 
 #define commonAnode true
 
+#define ON true
+#define OFF false
+#define LumOutput 13 // pour definir la sortie de l'Arduino pour la lumiere
+
 float facteurAcceleration;
 
 float distTotMotDroite = 0;
 float distTotMotGauche = 0;
 
 float vitesseTourner = 0.2;
+
+bool OutputSetup = false; // pour ne pas definir continuellement l'entree de la lumiere
+
+//=============================================================================================
 
 void setup()
 {
@@ -58,15 +71,21 @@ void setup()
   delay(1500);
   MOTOR_SetSpeed(0, 0); // Moteur gauche
   MOTOR_SetSpeed(1, 0); // Moteur droit
+
+  LightCTRL(OFF,LumOutput);
 }
 
 void loop()
 {
+  if(ROBUS_IsBumper(0))
+  {
+    StrobeEffect(2,5);
+  }
   if(ROBUS_IsBumper(1))
   {
     SonnerAlarme();
   }
-   if(ROBUS_IsBumper(3))
+  if(ROBUS_IsBumper(3))
   {
     FaireParcours(3);
   }
@@ -75,7 +94,7 @@ void loop()
 void SonnerAlarme()
 {
   //Mettre la fonction tant que le robot est en detection et quil tire
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < 6; i++)
   {
     tone(BUZZER, 1000);
 
@@ -96,6 +115,7 @@ void FaireParcours(int nbTours)
 {
     for (int i = 0; i < nbTours; i++)
     {
+      facteurAcceleration = 0.5;
       Mouvement(120);
       Tourner(1, 87);
       Mouvement(100);
@@ -295,7 +315,7 @@ void Suivre()
 
   if (Capteur >= 5) //Modifier avec les valeurs obtenues sur le montage.
   {
-    MOTOR_SetSpeed(0, -0.5); // Faire des tests pour voir quel angle fonctionne mieux. Austement.Mettre le bon nom de fonction.
+    MOTOR_SetSpeed(0, -0.5); // Faire des tests pour voir quel angle fonctionne mieux.
     MOTOR_SetSpeed(1, 0);    // 111 -> Pas de ligne
   }
   else if (Capteur >= 4.28) //110 -> Tourne a gauche
@@ -339,3 +359,39 @@ void Suivre()
     MOTOR_SetSpeed(1, 0.5);
   }
 }
+
+//=============================================================================================
+//fonctions controle des lumieres
+int StrobeEffect(int PulseParSec, int Duree){
+  if(! OutputSetup){
+    pinMode(LumOutput, OUTPUT);
+    OutputSetup = true;
+    
+    Serial.println("pinout defined \n");
+  }
+
+  LightCTRL(OFF, LumOutput);
+  for(int t = 0; t < Duree; t++){
+    for(int i = 0; i < PulseParSec; i++){
+      LightCTRL(ON, LumOutput);
+      Serial.println("strobe on \n");
+      delay(1000/(2*PulseParSec));
+
+      LightCTRL(OFF, LumOutput);
+      Serial.println("strobe off \n");
+      delay(1000/(2*PulseParSec));
+    }
+  }
+}
+
+void LightCTRL(bool OnOff, int PinOut){
+  if (OnOff){
+    digitalWrite(PinOut, HIGH);
+    Serial.println("cmd lum on \n");
+  } else {
+    digitalWrite(PinOut, LOW);
+    Serial.println("cmd lum off \n");
+  }
+}
+
+//=============================================================================================
