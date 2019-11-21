@@ -5,6 +5,7 @@
 int Mouvement(float dist);
 int Tourner(int dir, int Angle);
 float FonctionPID(float distMotDroite, float distMotGauche);
+void Suivre();
 
 void SonnerAlarme();
 void FaireParcours(int nbTours);
@@ -30,6 +31,9 @@ void LightCTRL(bool OnOff, int PinOut);
 #define bluepin 6
 
 #define BUZZER 8
+#define CAPTEUR_GAUCHE 14
+#define CAPTEUR_MILIEU 15
+#define CAPTEUR_DROIT 16
 
 #define commonAnode true
 
@@ -45,6 +49,12 @@ float distTotMotGauche = 0;
 float vitesseTourner = 0.2;
 
 bool OutputSetup = false; // pour ne pas definir continuellement l'entree de la lumiere
+
+bool EnSuivi = false;
+
+int capteurG;
+int capteurM;
+int capteurD;
 
 //=============================================================================================
 
@@ -64,6 +74,10 @@ void setup()
   pinMode(redpin, OUTPUT);
   pinMode(greenpin, OUTPUT);
   pinMode(bluepin, OUTPUT);
+
+  pinMode(CAPTEUR_GAUCHE, INPUT);
+  pinMode(CAPTEUR_MILIEU, INPUT);
+  pinMode(CAPTEUR_DROIT, INPUT);
 
   pinMode(BUZZER, OUTPUT);
   noTone(BUZZER);
@@ -88,6 +102,29 @@ void loop()
   if(ROBUS_IsBumper(3))
   {
     FaireParcours(3);
+  }
+
+  if(ROBUS_IsBumper(2))
+  {
+    if(EnSuivi)
+    {
+      EnSuivi = false;
+    }
+    else
+    {
+      EnSuivi = true;
+    }
+    delay(250);
+  }
+
+  if(EnSuivi)
+  {
+    Suivre();
+  }
+  else
+  {
+    MOTOR_SetSpeed(0,0);
+    MOTOR_SetSpeed(1,0);
   }
 }
 
@@ -117,13 +154,13 @@ void FaireParcours(int nbTours)
     {
       facteurAcceleration = 0.5;
       Mouvement(120);
-      Tourner(1, 87);
+      Tourner(1, 89);
       Mouvement(100);
-      Tourner(1, 87);
+      Tourner(1, 89);
       Mouvement(120);
-      Tourner(1, 87);
-      Mouvement(100);
       Tourner(1, 88);
+      Mouvement(100);
+      Tourner(1, 89);
     }
 }
 
@@ -309,55 +346,78 @@ int lireCouleur()
 //Fonction suiveur de ligne
 void Suivre()
 {
-  float Capteur = analogRead(0); // Mettre la fonction pour lire la valeur analogique du suiveur.
-  Serial.println("Capteur : ");
-  Serial.print(Capteur);
+  capteurG = digitalRead(CAPTEUR_GAUCHE);
+  capteurM = digitalRead(CAPTEUR_MILIEU);
+  capteurD = digitalRead(CAPTEUR_DROIT);
 
-  if (Capteur >= 5) //Modifier avec les valeurs obtenues sur le montage.
+  Serial.println("Capteur g : ");
+  Serial.print(capteurG);
+  Serial.println("Capteur m : ");
+  Serial.print(capteurM);
+  Serial.println("Capteur d : ");
+  Serial.print(capteurD);
+
+  if (capteurG == HIGH)
   {
-    MOTOR_SetSpeed(0, -0.5); // Faire des tests pour voir quel angle fonctionne mieux.
-    MOTOR_SetSpeed(1, 0);    // 111 -> Pas de ligne
+    MOTOR_SetSpeed(0, 0.1);
+    MOTOR_SetSpeed(1, 0.3);
   }
-  else if (Capteur >= 4.28) //110 -> Tourne a gauche
-  {
-    MOTOR_SetSpeed(0, -0.3); //Gauche
-    MOTOR_SetSpeed(1, 0.7);  //Droite
-  }
-  else if (Capteur >= 3.57) //101 -> Avance
-  {
-    MOTOR_SetSpeed(0, 0.7);
-    MOTOR_SetSpeed(1, 0.7);
-  }
-  else if (Capteur >= 2.86) //100 -> Tourne a gauche un peu
+  else if (capteurD == HIGH)
   {
     MOTOR_SetSpeed(0, 0.3);
-    MOTOR_SetSpeed(1, 0.7);
+    MOTOR_SetSpeed(1, 0.1);
   }
-  else if (Capteur >= 2.14) //011 -> Tourne a droite
+  else
   {
-    MOTOR_SetSpeed(0, 0.7);
-    MOTOR_SetSpeed(1, -0.3);
-  }
-  else if (Capteur >= 1.42) //010 -> Intersection tourne a droite
-  {
-    MOTOR_SetSpeed(0, 0.7);
+    MOTOR_SetSpeed(0, 0.3);
     MOTOR_SetSpeed(1, 0.3);
   }
-  else if (Capteur >= 0.72) //001 -> Tourne a droite un peu
-  {
-    MOTOR_SetSpeed(0, 0.7);
-    MOTOR_SetSpeed(1, 0.3);
-  }
-  else if (Capteur >= 0) //000 -> Intersection milieu stop prendre une decision. peut etre ajouter return.
-  {
-    MOTOR_SetSpeed(0, 0);
-    MOTOR_SetSpeed(1, 0);
-  }
-  else //Par defaut
-  {
-    MOTOR_SetSpeed(0, 0.5);
-    MOTOR_SetSpeed(1, 0.5);
-  }
+
+  // if (Capteur >= 5)
+  // {
+  //   MOTOR_SetSpeed(0, -0.5); // Faire des tests pour voir quel angle fonctionne mieux.
+  //   MOTOR_SetSpeed(1, 0);    // 111 -> Pas de ligne
+  // }
+  // else if (Capteur >= 4.28) //110 -> Tourne a gauche
+  // {
+  //   MOTOR_SetSpeed(0, -0.3); //Gauche
+  //   MOTOR_SetSpeed(1, 0.7);  //Droite
+  // }
+  // else if (Capteur >= 3.57) //101 -> Avance
+  // {
+  //   MOTOR_SetSpeed(0, 0.7);
+  //   MOTOR_SetSpeed(1, 0.7);
+  // }
+  // else if (Capteur >= 2.86) //100 -> Tourne a gauche un peu
+  // {
+  //   MOTOR_SetSpeed(0, 0.3);
+  //   MOTOR_SetSpeed(1, 0.7);
+  // }
+  // else if (Capteur >= 2.14) //011 -> Tourne a droite
+  // {
+  //   MOTOR_SetSpeed(0, 0.7);
+  //   MOTOR_SetSpeed(1, -0.3);
+  // }
+  // else if (Capteur >= 1.42) //010 -> Intersection tourne a droite
+  // {
+  //   MOTOR_SetSpeed(0, 0.7);
+  //   MOTOR_SetSpeed(1, 0.3);
+  // }
+  // else if (Capteur >= 0.72) //001 -> Tourne a droite un peu
+  // {
+  //   MOTOR_SetSpeed(0, 0.7);
+  //   MOTOR_SetSpeed(1, 0.3);
+  // }
+  // else if (Capteur >= 0) //000 -> Intersection milieu stop prendre une decision. peut etre ajouter return.
+  // {
+  //   MOTOR_SetSpeed(0, 0);
+  //   MOTOR_SetSpeed(1, 0);
+  // }
+  // else //Par defaut
+  // {
+  //   MOTOR_SetSpeed(0, 0.5);
+  //   MOTOR_SetSpeed(1, 0.5);
+  // }
 }
 
 //=============================================================================================
