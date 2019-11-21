@@ -25,6 +25,10 @@ Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS3472
 
 #define commonAnode true
 
+int alarmeActive = -1; //-1 = FAUX. 1 = VRAI.
+unsigned long temps_initial = 0;
+#define DELAI_SON 250 //250 ms de delai entre les tonalites de lalarme
+
 float facteurAcceleration;
 
 float distTotMotDroite = 0;
@@ -59,30 +63,54 @@ void setup()
 
 void loop()
 {
+
   if(ROBUS_IsBumper(1))
   {
-    SonnerAlarme();
+    delay(500); //Pour que le bumper ne change bien quune seule fois
+    alarmeActive = alarmeActive * -1;
+  }
+
+  //Si le robot est en detection ou en tir
+  if(alarmeActive == 1)
+  {
+    if(millis() > temps_initial + DELAI_SON)
+    {
+      tone(BUZZER, 1000);
+
+      if(millis() > temps_initial + 2 * DELAI_SON)
+      {
+        tone(BUZZER, 2000);
+        temps_initial = millis();
+      }
+    }
+  }
+  else
+  {
+    alarmeActive = -1;
+    noTone(BUZZER);
   }
 }
 
 void SonnerAlarme()
 {
-  //Mettre la fonction tant que le robot est en detection et quil tire
-  for (int i = 0; i < 5; i++)
-  {
-    tone(BUZZER, 1000);
+  // //Mettre la fonction tant que le robot est en detection et quil tire
+  // for (int i = 0; i < 5; i++)
+  // {
+  //   tone(BUZZER, 1000);
 
-    delay(250);
-    tone(BUZZER, 2000);
+  //   delay(250);
+  //   tone(BUZZER, 2000);
 
-    // noTone(BUZZER);
-    // AX_BuzzerON();
+    
 
-    delay(250);
-    // AX_BuzzerOFF();
-    }
+  //   // noTone(BUZZER);
+  //   // AX_BuzzerON();
 
-    noTone(BUZZER);
+  //   delay(250);
+  //   // AX_BuzzerOFF();
+  //   }
+
+  //   noTone(BUZZER);
 }
 
 float LireDistance(int capteur) //capteur 0 = GAUCHE. capteur 1 = DROIT
