@@ -488,13 +488,15 @@ int StrobeEffect(int PulseParSec, int Duree)
   }
 }
 
-int Action(int PulseParSec, int Duree, int DureePompe, int buzzerDelay, int lightDelay)
+int Action(int PulseParSec, int Duree, int DureePompe, int buzzerDelay)
 {
   int PompFired = 0;
-  int startTime = millis();
+  int startTime = 0;
   int buzzerChangeTime = 0;
   int buzzerState = 0;
+  int lightState = 0;
   int lightChangeTime = 0;
+  int lightDelay = 1000/(2*PulseParSec);
 
   if(! OutputSetup)
   {
@@ -510,13 +512,12 @@ int Action(int PulseParSec, int Duree, int DureePompe, int buzzerDelay, int ligh
   buzzerChangeTime = millis();
   buzzerState = 1;
   lightChangeTime = millis();
+  LightCTRL(ON, LumOutput);
+  lightState = 1;
 
-      LightCTRL(ON, LumOutput);
-
-  for(int t = 0; t < Duree; t++)
+  startTime = millis();
+  while( (millis() - startTime) < Duree);
   {
-    for(int i = 0; i < PulseParSec; i++)
-    {
       if( ( millis() - startTime ) > DureePompe)
       {
         digitalWrite(POMPE, LOW);
@@ -547,12 +548,6 @@ int Action(int PulseParSec, int Duree, int DureePompe, int buzzerDelay, int ligh
 
 
 
-      //Serial.println("strobe on \n");
-      //delay(1000/(2*PulseParSec));
-
-      //noTone(BUZZER);
-      //Serial.println("strobe off \n");
-      //delay(1000/(2*PulseParSec));
     }
   }
 }
