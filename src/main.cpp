@@ -57,6 +57,11 @@ int capteurG;
 int capteurM;
 int capteurD;
 
+int DetectionFaite = 0;
+
+unsigned long temps_initial = 0;
+#define DELAI_TEST 1500 //250 ms de delai entre les tonalites de lalarme
+
 //=============================================================================================
 
 void setup()
@@ -122,6 +127,16 @@ void loop()
   if(EnSuivi)
   {
     Suivre();
+
+    //Test 90 pour detection
+    if(millis() > temps_initial + DELAI_TEST && DetectionFaite == 0)
+    {
+      Tourner(1, 89);
+      delay(500);
+      Tourner(1, 89);
+
+      DetectionFaite = 1;
+    }
   }
   else
   {
@@ -191,7 +206,6 @@ void Detection(void)
       Action(2,5);
     } 
   } 
-
 }
 
 int Tourner(int dir, int Angle) //dir = -1 pour tourner a gauche et dir = 1 pour tourner à droite
@@ -383,17 +397,17 @@ void Suivre()
   if (capteurG == HIGH)
   {
     MOTOR_SetSpeed(0, 0.1);
-    MOTOR_SetSpeed(1, 0.4);
+    MOTOR_SetSpeed(1, 0.3);
   }
   else if (capteurD == HIGH)
   {
-    MOTOR_SetSpeed(0, 0.4);
+    MOTOR_SetSpeed(0, 0.3);
     MOTOR_SetSpeed(1, 0.1);
   }
   else
   {
-    MOTOR_SetSpeed(0, 0.15);
-    MOTOR_SetSpeed(1, 0.15);
+    MOTOR_SetSpeed(0, 0.1);
+    MOTOR_SetSpeed(1, 0.1);
   }
 
   // if (Capteur >= 5)
