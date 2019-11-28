@@ -16,7 +16,8 @@ float LireDistance(int capteur);
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
 
 int StrobeEffect(int PulseParSec, int Duree); //Duree est en secondes
-int Action(int PulseParSec, int Duree); //Duree est en secondes
+int nonBlockingStrobe(int *lastChangeTime, int  PulsePerSecond, int *lightState); //Changes light state if lastChangeTime is high enough
+int Action(int PulseParSec, int Duree, int DureePompe, int buzzerDelay); //Duree est en millisecondes
 void LightCTRL(bool OnOff, int PinOut);
 //=============================================================================================
 
@@ -463,6 +464,27 @@ void Suivre()
 
 //=============================================================================================
 //fonctions controle des lumieres
+
+int nonBlockingStrobe(int *lastChangeTime, int  PulsePerSecond, int *lightState)
+{
+  int lightDelay = 1000/(2*PulsePerSecond);
+
+      if( ( millis() - *lastChangeTime ) > lightDelay)
+      {
+        if(*lightState)
+        {
+      LightCTRL(ON, LumOutput);
+        *lightState = ON;
+        }
+        else
+        {
+      LightCTRL(OFF, LumOutput);
+        *lightState = OFF;
+        }
+        *lastChangeTime = millis();
+      }
+}
+
 int StrobeEffect(int PulseParSec, int Duree)
 {
   if(! OutputSetup)
@@ -534,18 +556,7 @@ int Action(int PulseParSec, int Duree, int DureePompe, int buzzerDelay)
         }
       }
 
-      if( ( millis() - lightChangeTime ) > lightDelay)
-      {
-        if(lightState)
-        {
-      LightCTRL(ON, LumOutput);
-        }
-        else
-        {
-      LightCTRL(OFF, LumOutput);
-        }
-      }
-
+      nonBlockingStrobe(&lightChangeTime, PulseParSec, &lightState);
 
 
     }
