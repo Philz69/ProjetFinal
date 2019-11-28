@@ -32,6 +32,7 @@ void LightCTRL(bool OnOff, int PinOut);
 #define bluepin 6
 
 #define BUZZER 8
+#define POMPE 22
 #define CAPTEUR_GAUCHE 14
 #define CAPTEUR_MILIEU 15
 #define CAPTEUR_DROIT 16
@@ -81,6 +82,7 @@ void setup()
   pinMode(greenpin, OUTPUT);
   pinMode(bluepin, OUTPUT);
 
+  pinMode(POMPE, OUTPUT);
   pinMode(CAPTEUR_GAUCHE, INPUT);
   pinMode(CAPTEUR_MILIEU, INPUT);
   pinMode(CAPTEUR_DROIT, INPUT);
@@ -99,7 +101,9 @@ void loop()
 {
   if(ROBUS_IsBumper(0))
   {
-    StrobeEffect(2,5);
+    digitalWrite(POMPE, HIGH);
+    delay(1000);
+  digitalWrite(POMPE, LOW);
   }
   if(ROBUS_IsBumper(1))
   {
@@ -195,7 +199,7 @@ void Detection(void)
   Serial.println(DistGauche);
   if(DistAvant >= 15 && DistAvant <= 60)
   {
-    Action(2,5);
+    Action(2,5, 2500);
   } 
   if(DistGauche >= 15 && DistGauche <= 60)
   {
@@ -203,7 +207,7 @@ void Detection(void)
     DistAvant = LireDistance(1);
     if(DistAvant >= 15 && DistAvant <= 60)
     {
-      Action(2,5);
+      Action(2,5, 2500);
     } 
   } 
 }
@@ -484,8 +488,14 @@ int StrobeEffect(int PulseParSec, int Duree)
   }
 }
 
-int Action(int PulseParSec, int Duree)
+int Action(int PulseParSec, int Duree, int DureePompe, int buzzerDelay, int lightDelay)
 {
+  int PompFired = 0;
+  int startTime = millis();
+  int buzzerChangeTime = 0;
+  int buzzerState = 0;
+  int lightChangeTime = 0;
+
   if(! OutputSetup)
   {
     pinMode(LumOutput, OUTPUT);
@@ -494,19 +504,55 @@ int Action(int PulseParSec, int Duree)
   }
   noTone(BUZZER);
   LightCTRL(OFF, LumOutput);
+  digitalWrite(POMPE, HIGH);
+
+  tone(BUZZER, 1000);
+  buzzerChangeTime = millis();
+  buzzerState = 1;
+  lightChangeTime = millis();
+
+      LightCTRL(ON, LumOutput);
+
   for(int t = 0; t < Duree; t++)
   {
     for(int i = 0; i < PulseParSec; i++)
     {
-      tone(BUZZER, 1000);
-      LightCTRL(ON, LumOutput);
-      //Serial.println("strobe on \n");
-      delay(1000/(2*PulseParSec));
+      if( ( millis() - startTime ) > DureePompe)
+      {
+        digitalWrite(POMPE, LOW);
+      }
+      if( ( millis() - buzzerChangeTime ) > buzzerDelay)
+      {
+        if(buzzerState)
+        {
+        tone(BUZZER, 2000);
+        }
+        else
+        {
+        tone(BUZZER, 1000);
+        }
+      }
 
-      noTone(BUZZER);
+      if( ( millis() - lightChangeTime ) > lightDelay)
+      {
+        if(lightState)
+        {
+      LightCTRL(ON, LumOutput);
+        }
+        else
+        {
       LightCTRL(OFF, LumOutput);
+        }
+      }
+
+
+
+      //Serial.println("strobe on \n");
+      //delay(1000/(2*PulseParSec));
+
+      //noTone(BUZZER);
       //Serial.println("strobe off \n");
-      delay(1000/(2*PulseParSec));
+      //delay(1000/(2*PulseParSec));
     }
   }
 }
