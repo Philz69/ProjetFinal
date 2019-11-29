@@ -16,8 +16,9 @@ float LireDistance(int capteur);
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
 
 int StrobeEffect(int PulseParSec, int Duree); //Duree est en secondes
-int nonBlockingStrobe(int *lastChangeTime, int  PulsePerSecond, int *lightState); //Changes light state if lastChangeTime is high enough
-int Action(int PulseParSec, int Duree, int DureePompe, int buzzerDelay); //Duree est en millisecondes
+void nonBlockingBuzzer(uint32_t *lastChangeTime, int changeFrequency, int *buzzerState);
+void nonBlockingStrobe(uint32_t *lastChangeTime, int  PulsePerSecond, int *lightState); //Changes light state if lastChangeTime is high enough
+void Action(uint32_t duration, int lightFrequency, int soundFrequency, uint32_t pumpDuration);
 void LightCTRL(bool OnOff, int PinOut);
 //=============================================================================================
 
@@ -200,7 +201,7 @@ void Detection(void)
   Serial.println(DistGauche);
   if(DistAvant >= 15 && DistAvant <= 60)
   {
-    Action(2,5, 2500);
+    Action(2, 50, 4, 2);
   } 
   if(DistGauche >= 15 && DistGauche <= 60)
   {
@@ -208,7 +209,7 @@ void Detection(void)
     DistAvant = LireDistance(1);
     if(DistAvant >= 15 && DistAvant <= 60)
     {
-      Action(2,5, 2500);
+    Action(2, 50, 4, 2);
     } 
   } 
 }
@@ -465,9 +466,9 @@ void Suivre()
 //=============================================================================================
 //fonctions controle des lumieres
 
-int nonBlockingStrobe(int *lastChangeTime, int  PulsePerSecond, int *lightState)
+void nonBlockingStrobe(uint32_t *lastChangeTime, int  PulsePerSecond, int *lightState)
 {
-  int lightDelay = 1000/(2*PulsePerSecond);
+  uint32_t lightDelay = 1000/(2*PulsePerSecond);
 
       if( ( millis() - *lastChangeTime ) > lightDelay)
       {
@@ -480,6 +481,26 @@ int nonBlockingStrobe(int *lastChangeTime, int  PulsePerSecond, int *lightState)
         {
       LightCTRL(OFF, LumOutput);
         *lightState = OFF;
+        }
+        *lastChangeTime = millis();
+      }
+}
+
+void nonBlockingBuzzer(uint32_t *lastChangeTime, int changeFrequency, int *buzzerState)
+{
+  uint32_t buzzerDelay = 1/changeFrequency;
+
+      if( ( millis() - *lastChangeTime ) >  buzzerDelay)
+      {
+        if(*buzzerState)
+        {
+        tone(BUZZER, 2000);
+        *buzzerState = ON;
+        }
+        else
+          {
+        tone(BUZZER, 1000);
+        *buzzerState = OFF;
         }
         *lastChangeTime = millis();
       }
@@ -510,57 +531,44 @@ int StrobeEffect(int PulseParSec, int Duree)
   }
 }
 
-int Action(int PulseParSec, int Duree, int DureePompe, int buzzerDelay)
+void Action(uint32_t duration, int lightFrequency, int soundFrequency, uint32_t pumpDuration)
 {
-  int PompFired = 0;
+  int pumpFired = 0;
   int startTime = 0;
-  int buzzerChangeTime = 0;
-  int buzzerState = 0;
-  int lightState = 0;
-  int lightChangeTime = 0;
-  int lightDelay = 1000/(2*PulseParSec);
 
-  if(! OutputSetup)
-  {
-    pinMode(LumOutput, OUTPUT);
-    OutputSetup = true;  
-    //Serial.println("pinout defined \n");
-  }
-  noTone(BUZZER);
-  LightCTRL(OFF, LumOutput);
+  uint32_t buzzerChangeTime = 0;
+  int buzzerState = 0;
+
+  int lightState = 0;
+  uint32_t lightChangeTime = 0;
+
   digitalWrite(POMPE, HIGH);
 
   tone(BUZZER, 1000);
   buzzerChangeTime = millis();
   buzzerState = 1;
-  lightChangeTime = millis();
+
   LightCTRL(ON, LumOutput);
+  lightChangeTime = millis();
   lightState = 1;
 
   startTime = millis();
-  while( (millis() - startTime) < Duree);
+  while( (millis() - startTime) < duration)
   {
-      if( ( millis() - startTime ) > DureePompe)
+      if( ( millis() - startTime ) > pumpDuration && !pumpFired)
       {
         digitalWrite(POMPE, LOW);
-      }
-      if( ( millis() - buzzerChangeTime ) > buzzerDelay)
-      {
-        if(buzzerState)
-        {
-        tone(BUZZER, 2000);
-        }
-        else
-        {
-        tone(BUZZER, 1000);
-        }
+        pumpFired = 1;
       }
 
-      nonBlockingStrobe(&lightChangeTime, PulseParSec, &lightState);
+      nonBlockingBuzzer(&buzzerChangeTime, soundFrequency, &buzzerState);
+      nonBlockingStrobe(&lightChangeTime, lightFrequency, &lightState);
 
-
-    }
   }
+
+  LightCTRL(OFF, LumOutput);
+  noTone(BUZZER);
+
 }
 
 void LightCTRL(bool OnOff, int PinOut){
