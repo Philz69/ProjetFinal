@@ -104,9 +104,6 @@ void loop()
 {
   if(ROBUS_IsBumper(0))
   {
-    digitalWrite(POMPE, HIGH);
-    delay(1000);
-    digitalWrite(POMPE, LOW);
   }
   if(ROBUS_IsBumper(1))
   {
@@ -202,7 +199,7 @@ void Detection(void)
   Serial.println(DistGauche);
   if(DistAvant >= 15 && DistAvant <= 60)
   {
-    Action(2, 30, 3, 2);
+    Action(2000, 30, 3, 2000);
   } 
   if(DistGauche >= 15 && DistGauche <= 60)
   {
@@ -210,7 +207,7 @@ void Detection(void)
     DistAvant = LireDistance(1);
     if(DistAvant >= 15 && DistAvant <= 60)
     {
-    Action(2, 30, 3, 2);
+    Action(2000, 30, 3, 2000);
     } 
   } 
 }
@@ -536,7 +533,7 @@ int StrobeEffect(int PulseParSec, int Duree)
 void Action(uint32_t duration, int lightFrequency, int soundFrequency, uint32_t pumpDuration)
 {
   int pumpFired = 0;
-  int startTime = 0;
+  uint32_t startTime = 0;
 
   uint32_t buzzerChangeTime = 0;
   int buzzerState = 0;
@@ -546,11 +543,11 @@ void Action(uint32_t duration, int lightFrequency, int soundFrequency, uint32_t 
 
   digitalWrite(POMPE, HIGH);
 
-  tone(BUZZER, 1000);
+  //tone(BUZZER, 1000);
   buzzerChangeTime = millis();
   buzzerState = 1;
 
-  LightCTRL(ON, LumOutput);
+  //LightCTRL(ON, LumOutput);
   lightChangeTime = millis();
   lightState = 1;
 
@@ -566,7 +563,6 @@ void Action(uint32_t duration, int lightFrequency, int soundFrequency, uint32_t 
 
       nonBlockingBuzzer(&buzzerChangeTime, soundFrequency, &buzzerState);
       nonBlockingStrobe(&lightChangeTime, lightFrequency, &lightState);
-
   }
 
   LightCTRL(OFF, LumOutput);
