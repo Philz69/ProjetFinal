@@ -43,7 +43,7 @@ void LightCTRL(bool OnOff, int PinOut);
 
 #define ON true
 #define OFF false
-#define LumOutput 13 // pour definir la sortie de l'Arduino pour la lumiere
+#define LumOutput 24 // pour definir la sortie de l'Arduino pour la lumiere
 
 float facteurAcceleration;
 
@@ -90,6 +90,7 @@ void setup()
   pinMode(CAPTEUR_DROIT, INPUT);
 
   pinMode(BUZZER, OUTPUT);
+  pinMode(LumOutput, OUTPUT);
   noTone(BUZZER);
 
   delay(1500);
@@ -105,11 +106,11 @@ void loop()
   {
     digitalWrite(POMPE, HIGH);
     delay(1000);
-  digitalWrite(POMPE, LOW);
+    digitalWrite(POMPE, LOW);
   }
   if(ROBUS_IsBumper(1))
   {
-    SonnerAlarme();
+    Action(2000, 5, 2, 2000);
   }
   if(ROBUS_IsBumper(3))
   {
@@ -201,7 +202,7 @@ void Detection(void)
   Serial.println(DistGauche);
   if(DistAvant >= 15 && DistAvant <= 60)
   {
-    Action(2, 50, 4, 2);
+    Action(2, 30, 3, 2);
   } 
   if(DistGauche >= 15 && DistGauche <= 60)
   {
@@ -209,7 +210,7 @@ void Detection(void)
     DistAvant = LireDistance(1);
     if(DistAvant >= 15 && DistAvant <= 60)
     {
-    Action(2, 50, 4, 2);
+    Action(2, 30, 3, 2);
     } 
   } 
 }
@@ -472,7 +473,7 @@ void nonBlockingStrobe(uint32_t *lastChangeTime, int  PulsePerSecond, int *light
 
       if( ( millis() - *lastChangeTime ) > lightDelay)
       {
-        if(*lightState)
+        if(!*lightState)
         {
       LightCTRL(ON, LumOutput);
         *lightState = ON;
@@ -488,18 +489,19 @@ void nonBlockingStrobe(uint32_t *lastChangeTime, int  PulsePerSecond, int *light
 
 void nonBlockingBuzzer(uint32_t *lastChangeTime, int changeFrequency, int *buzzerState)
 {
-  uint32_t buzzerDelay = 1/changeFrequency;
+  uint32_t buzzerDelay = 1000/(2*changeFrequency);
 
       if( ( millis() - *lastChangeTime ) >  buzzerDelay)
       {
-        if(*buzzerState)
+        if(!*buzzerState)
         {
         tone(BUZZER, 2000);
         *buzzerState = ON;
         }
         else
-          {
-        tone(BUZZER, 1000);
+        {
+        //tone(BUZZER, 1000);
+        noTone(BUZZER);
         *buzzerState = OFF;
         }
         *lastChangeTime = millis();
@@ -555,6 +557,7 @@ void Action(uint32_t duration, int lightFrequency, int soundFrequency, uint32_t 
   startTime = millis();
   while( (millis() - startTime) < duration)
   {
+  Serial.println(millis() - startTime);
       if( ( millis() - startTime ) > pumpDuration && !pumpFired)
       {
         digitalWrite(POMPE, LOW);
@@ -568,7 +571,9 @@ void Action(uint32_t duration, int lightFrequency, int soundFrequency, uint32_t 
 
   LightCTRL(OFF, LumOutput);
   noTone(BUZZER);
+  digitalWrite(POMPE, LOW);
 
+return;
 }
 
 void LightCTRL(bool OnOff, int PinOut){
