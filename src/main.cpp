@@ -7,15 +7,16 @@
 void Suivre();
 void Detection();
 
-void Action(uint32_t duration, int lightFrequency, int soundFrequency, uint32_t pumpDuration);
-void nonBlockingStrobe(uint32_t *lastChangeTime, int  PulsePerSecond, int *lightState); //Changes light state if lastChangeTime is high enough
+void Action(uint32_t duree, uint32_t frequenceStrobe, uint32_t frequenceAlarme, uint32_t dureePompe);
+
+void nonBlockingStrobe(uint32_t *dernierTempsChangement, int  pulseParSeconde, int *etatLumieres);
+
 void nonBlockingAlarme(uint32_t *lastChangeTime, int changeFrequency, int *buzzerState);
 
 //Fonctions en Backup
 
 void FaireParcours(int nbTours);
 void StrobeEffect(int PulseParSec, int Duree); //Duree en secondes
-void LightCTRL(bool OnOff, int PinOut);
 void SonnerAlarme();
 
 //Fonctions de base
@@ -28,32 +29,33 @@ float FonctionPID(float distMotDroite, float distMotGauche);
 
 //
 
-int lireCouleur();
-Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
+// int lireCouleur();
+// Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
 
 //=============================================================================================
 
-#define ROUGE 0
-#define VERT 1
-#define BLEU 2
-#define JAUNE 3
-#define NOIR 4
+// #define ROUGE 0
+// #define VERT 1
+// #define BLEU 2
+// #define JAUNE 3
+// #define NOIR 4
 
-#define redpin 3
-#define greenpin 5
-#define bluepin 6
+// #define redpin 3
+// #define greenpin 5
+// #define bluepin 6
+// #define commonAnode true
 
-#define BUZZER 8
-#define POMPE 22
+#define POMPE 22 //Sortie de l'Arduino pour la pompe
+
+#define BUZZER 8 //Sortie de l'Arduino pour le buzzer
+#define LUMIERES 24 //Sortie de l'Arduino pour la lumiere
+
 #define CAPTEUR_GAUCHE 14
 #define CAPTEUR_MILIEU 15
 #define CAPTEUR_DROIT 16
 
-#define commonAnode true
-
 #define ON true
 #define OFF false
-#define LumOutput 24 //Sortie de l'Arduino pour la lumiere
 
 //=============================================================================================
 
@@ -83,32 +85,33 @@ void setup()
   // put your setup code here, to run once:
   BoardInit();
   Serial.begin(9600);
-  if (tcs.begin())
-  {
-    Serial.println("Found sensor");
-  }
-  else
-  {
-    Serial.println("No TCS34725 found ... check your connections");
-  }
-  pinMode(redpin, OUTPUT);
-  pinMode(greenpin, OUTPUT);
-  pinMode(bluepin, OUTPUT);
+  // if (tcs.begin())
+  // {
+  //   Serial.println("Found sensor");
+  // }
+  // else
+  // {
+  //   Serial.println("No TCS34725 found ... check your connections");
+  // }
+  // pinMode(redpin, OUTPUT);
+  // pinMode(greenpin, OUTPUT);
+  // pinMode(bluepin, OUTPUT);
 
-  pinMode(POMPE, OUTPUT);
   pinMode(CAPTEUR_GAUCHE, INPUT);
   pinMode(CAPTEUR_MILIEU, INPUT);
   pinMode(CAPTEUR_DROIT, INPUT);
 
+  pinMode(POMPE, OUTPUT);
   pinMode(BUZZER, OUTPUT);
-  pinMode(LumOutput, OUTPUT);
+  pinMode(LUMIERES, OUTPUT);
+
+  digitalWrite(LUMIERES, LOW);
   noTone(BUZZER);
 
-  delay(1500);
-  MOTOR_SetSpeed(0, 0); // Moteur gauche
-  MOTOR_SetSpeed(1, 0); // Moteur droit
+  MOTOR_SetSpeed(LEFT, 0); // Moteur gauche
+  MOTOR_SetSpeed(RIGHT, 0); // Moteur droit
 
-  LightCTRL(OFF,LumOutput);
+  delay(1500);
 }
 
 //=============================================================================================
@@ -146,14 +149,14 @@ void loop()
     Suivre();
 
     //Test 90 pour detection
-    if(millis() > temps_initial + DELAI_TEST && DetectionFaite == 0)
-    {
-      Tourner(1, 89);
-      delay(500);
-      Tourner(1, 89);
+    // if(millis() > temps_initial + DELAI_TEST && DetectionFaite == 0)
+    // {
+    //   Tourner(1, 89);
+    //   delay(500);
+    //   Tourner(1, 89);
 
-      DetectionFaite = 1;
-    }
+    //   DetectionFaite = 1;
+    // }
   }
   else
   {
@@ -168,30 +171,30 @@ void loop()
 void Suivre()
 {
   capteurG = digitalRead(CAPTEUR_GAUCHE);
-  capteurM = digitalRead(CAPTEUR_MILIEU);
+  // capteurM = digitalRead(CAPTEUR_MILIEU);
   capteurD = digitalRead(CAPTEUR_DROIT);
 
   Serial.println("Capteur g : ");
   Serial.print(capteurG);
-  Serial.println("Capteur m : ");
-  Serial.print(capteurM);
+  // Serial.println("Capteur m : ");
+  // Serial.print(capteurM);
   Serial.println("Capteur d : ");
   Serial.print(capteurD);
 
   if (capteurG == HIGH)
   {
-    MOTOR_SetSpeed(0, 0.1);
-    MOTOR_SetSpeed(1, 0.3);
+    MOTOR_SetSpeed(LEFT, 0.1);
+    MOTOR_SetSpeed(RIGHT, 0.3);
   }
   else if (capteurD == HIGH)
   {
-    MOTOR_SetSpeed(0, 0.3);
-    MOTOR_SetSpeed(1, 0.1);
+    MOTOR_SetSpeed(LEFT, 0.3);
+    MOTOR_SetSpeed(RIGHT, 0.1);
   }
   else
   {
-    MOTOR_SetSpeed(0, 0.1);
-    MOTOR_SetSpeed(1, 0.1);
+    MOTOR_SetSpeed(LEFT, 0.1);
+    MOTOR_SetSpeed(RIGHT, 0.1);
   }
 }
 
@@ -205,31 +208,33 @@ void Detection(void)
 
   Serial.println(DistGauche);
   
+  //Si l intrus est devant
   if(DistAvant >= 15 && DistAvant <= 60)
   {
     Action(2000, 30, 3, 2000);
-  } 
+  }
+
+  //Si l intrus est a gauche
   if(DistGauche >= 15 && DistGauche <= 60)
   {
     Tourner(-1, 90);
     DistAvant = LireDistance(1);
     if(DistAvant >= 15 && DistAvant <= 60)
     {
-    Action(2000, 30, 3, 2000);
-    } 
+      Action(2000, 30, 3, 2000);
+    }
+
+     Tourner(1, 90);
   } 
 }
 
 //=============================================================================================
 
 //Fonction qui actionne le jet deau, la lumiere et l alarme
-void Action(uint32_t duration, int lightFrequency, int soundFrequency, uint32_t pumpDuration)
+void Action(uint32_t duree, uint32_t frequenceStrobe, uint32_t frequenceAlarme, uint32_t dureePompe)
 {
-  int pumpFired = 0;
-  uint32_t startTime = 0;
-
-  uint32_t buzzerChangeTime = 0;
-  int buzzerState = 0;
+  int jetTire = 0;
+  uint32_t tempsDepart = 0;
 
   int lightState = 0;
   uint32_t lightChangeTime = 0;
@@ -237,64 +242,67 @@ void Action(uint32_t duration, int lightFrequency, int soundFrequency, uint32_t 
   digitalWrite(POMPE, HIGH);
 
   //tone(BUZZER, 1000);
-  buzzerChangeTime = millis();
-  buzzerState = 1;
+  uint32_t buzzerChangeTime = millis();
+  int buzzerState = 1;
 
   //LightCTRL(ON, LumOutput);
   lightChangeTime = millis();
   lightState = 1;
 
-  startTime = millis();
-  while( (millis() - startTime) < duration)
+  tempsDepart = millis();
+  
+  while((millis() - tempsDepart) < duree)
   {
-  Serial.println(millis() - startTime);
-      if( ( millis() - startTime ) > pumpDuration && !pumpFired)
-      {
-        digitalWrite(POMPE, LOW);
-        pumpFired = 1;
-      }
+    Serial.println(millis() - tempsDepart);
 
-      nonBlockingAlarme(&buzzerChangeTime, soundFrequency, &buzzerState);
-      nonBlockingStrobe(&lightChangeTime, lightFrequency, &lightState);
+    if(( millis() - tempsDepart ) > dureePompe && !jetTire)
+    {
+      //Le jet d eau est arrete
+      digitalWrite(POMPE, LOW);
+      jetTire = 1;
+    }
+
+    nonBlockingStrobe(&lightChangeTime, frequenceStrobe, &lightState);
+    nonBlockingAlarme(&buzzerChangeTime, frequenceAlarme, &buzzerState);
   }
 
-  LightCTRL(OFF, LumOutput);
-  noTone(BUZZER);
   digitalWrite(POMPE, LOW);
+  digitalWrite(LUMIERES, LOW);
+  noTone(BUZZER);
 
-return;
+  return;
 }
 
 //=============================================================================================
 
 //Fonction controle des lumieres
-void nonBlockingStrobe(uint32_t *lastChangeTime, int  PulsePerSecond, int *lightState)
+void nonBlockingStrobe(uint32_t *dernierTempsChangement, int  pulseParSeconde, int *etatLumieres)
 {
-  uint32_t lightDelay = 1000/(2*PulsePerSecond);
+  uint32_t delaiLumieres = 1000 / (2* pulseParSeconde);
 
-      if(( millis() - *lastChangeTime ) > lightDelay)
-      {
-        if(!*lightState)
-      {
-        LightCTRL(ON, LumOutput);
-        *lightState = ON;
-      }
-      else
-      {
-        LightCTRL(OFF, LumOutput);
-        *lightState = OFF;
-      }
+  if(( millis() - *dernierTempsChangement ) > delaiLumieres)
+  {
+    if(!*etatLumieres)
+    {
+      digitalWrite(LUMIERES, HIGH);
+      *etatLumieres = ON;
+    }
+    else
+    {
+      digitalWrite(LUMIERES, LOW);
+      *etatLumieres = OFF;
+    }
 
-      *lastChangeTime = millis();
-      }
+    *dernierTempsChangement = millis();
+  }
 }
 
 //=============================================================================================
 
-//Fonction de controle de lalarme
+//Fonction de controle de l alarme
 void nonBlockingAlarme(uint32_t *lastChangeTime, int changeFrequency, int *buzzerState)
 {
-  uint32_t buzzerDelay = 1000/(2*changeFrequency);
+  uint32_t buzzerDelay = 1000 / (2 * changeFrequency);
 
   if(( millis() - *lastChangeTime ) >  buzzerDelay)
   {
@@ -340,40 +348,24 @@ void StrobeEffect(int PulseParSec, int Duree)
 {
   if(! OutputSetup)
   {
-    pinMode(LumOutput, OUTPUT);
+    pinMode(LUMIERES, OUTPUT);
     OutputSetup = true;  
     Serial.println("pinout defined \n");
   }
 
-  LightCTRL(OFF, LumOutput);
+  digitalWrite(LUMIERES, LOW);
   for(int t = 0; t < Duree; t++)
   {
     for(int i = 0; i < PulseParSec; i++)
     {
-      LightCTRL(ON, LumOutput);
+      digitalWrite(LUMIERES, HIGH);
       Serial.println("strobe on \n");
       delay(1000/(2*PulseParSec));
 
-      LightCTRL(OFF, LumOutput);
+      digitalWrite(LUMIERES, LOW);
       Serial.println("strobe off \n");
       delay(1000/(2*PulseParSec));
     }
-  }
-}
-
-//=============================================================================================
-
-//Fonction de verification de l etat des lumieres 
-void LightCTRL(bool OnOff, int PinOut){
-  if (OnOff)
-  {
-    digitalWrite(PinOut, HIGH);
-    //Serial.println("cmd lum on \n");
-  } 
-  else 
-  {
-    digitalWrite(PinOut, LOW);
-    //Serial.println("cmd lum off \n");
   }
 }
 
@@ -550,48 +542,48 @@ float FonctionPID(float distMotDroite, float distMotGauche)
 //=============================================================================================
 
 //Fonction de detection de couleur avec capteurs de couleur
-int lireCouleur()
-{
-  uint16_t clear, red, green, blue;
-  tcs.setInterrupt(false);
-  tcs.getRawData(&red, &green, &blue, &clear);
-  tcs.setInterrupt(true);
-  float r, g, b, sum;
-  sum = clear;
-  r = red / sum;
-  g = green / sum;
-  b = blue / sum;
-  r = r * 256.0;
-  b = b * 256.0;
-  g = g * 256.0;
-  /*Serial.print("\tR:\t");   Serial.print((int)red);
- Serial.print("\tg:\t");   Serial.print((int)green);
- Serial.print("\tb:\t");   Serial.print((int)blue);
- Serial.print("\tclear:\t");   Serial.print((int)clear);
- Serial.println();*/
+// int lireCouleur()
+// {
+//   uint16_t clear, red, green, blue;
+//   tcs.setInterrupt(false);
+//   tcs.getRawData(&red, &green, &blue, &clear);
+//   tcs.setInterrupt(true);
+//   float r, g, b, sum;
+//   sum = clear;
+//   r = red / sum;
+//   g = green / sum;
+//   b = blue / sum;
+//   r = r * 256.0;
+//   b = b * 256.0;
+//   g = g * 256.0;
+//   /*Serial.print("\tR:\t");   Serial.print((int)red);
+//  Serial.print("\tg:\t");   Serial.print((int)green);
+//  Serial.print("\tb:\t");   Serial.print((int)blue);
+//  Serial.print("\tclear:\t");   Serial.print((int)clear);
+//  Serial.println();*/
 
-  if (clear < 650)
-  {
-    return 4;
-  }
-  if (r > 95 && r < 125 && g > 55 && g < 75 && b > 55 && b < 85)
-  {
-    return 0;
-  }
-  if (r > 40 && r < 60 && g > 85 && g < 105 && b > 80 && b < 100)
-  {
-    return 1;
-  }
-  if (r > 30 && r < 50 && g > 70 && g < 90 && b > 100 && b < 130)
-  {
-    return 2;
-  }
-  if (r > 90 && r < 130 && g > 80 && g < 100 && b > 40 && b < 60)
-  {
-    return 3;
-  }
+//   if (clear < 650)
+//   {
+//     return 4;
+//   }
+//   if (r > 95 && r < 125 && g > 55 && g < 75 && b > 55 && b < 85)
+//   {
+//     return 0;
+//   }
+//   if (r > 40 && r < 60 && g > 85 && g < 105 && b > 80 && b < 100)
+//   {
+//     return 1;
+//   }
+//   if (r > 30 && r < 50 && g > 70 && g < 90 && b > 100 && b < 130)
+//   {
+//     return 2;
+//   }
+//   if (r > 90 && r < 130 && g > 80 && g < 100 && b > 40 && b < 60)
+//   {
+//     return 3;
+//   }
 
-  return -1;
-}
+//   return -1;
+// }
 
 //=============================================================================================
