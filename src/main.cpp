@@ -7,13 +7,14 @@
 void Suivre();
 void Detection();
 
-void Action(uint32_t duree, uint32_t frequenceStrobe, uint32_t frequenceAlarme, uint32_t dureePompe);
+void Effrayer(uint32_t duree, uint32_t frequenceStrobe, uint32_t frequenceAlarme, uint32_t dureePompe);
 
-void nonBlockingStrobe(uint32_t *dernierTempsChangement, int  pulseParSeconde, int *etatLumieres);
+void ClignoterDispositif(int dispositif, uint32_t *dernierTempsChangement, int frequence, int *etat);
 
-void nonBlockingAlarme(uint32_t *lastChangeTime, int changeFrequency, int *buzzerState);
+// void nonBlockingStrobe(uint32_t *dernierTempsChangement, int pulseParSeconde, int *etatLumieres);
+// void nonBlockingAlarme(uint32_t *lastChangeTime, int changeFrequency, int *buzzerState);
 
-//Fonctions en Backup
+//Fonctions en Backup (pas utilisees)
 
 void FaireParcours(int nbTours);
 void StrobeEffect(int PulseParSec, int Duree); //Duree en secondes
@@ -47,15 +48,24 @@ float FonctionPID(float distMotDroite, float distMotGauche);
 
 #define POMPE 22 //Sortie de l'Arduino pour la pompe
 
-#define BUZZER 8 //Sortie de l'Arduino pour le buzzer
+#define BUZZER 8    //Sortie de l'Arduino pour le buzzer
 #define LUMIERES 24 //Sortie de l'Arduino pour la lumiere
 
+//Entrees de l'Arduino pour les capteurs de ligne
 #define CAPTEUR_GAUCHE 14
 #define CAPTEUR_MILIEU 15
 #define CAPTEUR_DROIT 16
 
 #define ON true
 #define OFF false
+
+#define DIST_DETECTION_MIN 15 //La distance minimale de detection d intrus en centimetres
+#define DIST_DETECTION_MAX 60 //La distance minimale de detection d intrus en centimetres
+
+#define DUREE_EFFRAYER 2000 //Le temps pendant lequel le robot effraie un intrus avec lumieres et alarme sonore
+#define DUREE_POMPE 2000 //Le temps pendant lequel le robot tire un jet d eau. <= DUREE_EFFRAYER
+#define FREQUENCE_LUMIERES 5 //Frequence du clignotement des lumieres en Hz
+#define FREQUENCE_ALARME 2 //Frequence du clignotement de l alarme sonore en Hz
 
 //=============================================================================================
 
@@ -68,15 +78,12 @@ float vitesseTourner = 0.2;
 
 bool OutputSetup = false; // pour ne pas definir continuellement l'entree de la lumiere
 
-bool EnSuivi = false;
+bool EnPatrouille = false; //Si le robot patrouille le jardin presentement
 
+//Capteurs de ligne
 int capteurG;
 int capteurM;
 int capteurD;
-
-int DetectionFaite = 0;
-unsigned long temps_initial = 0;
-#define DELAI_TEST 1500 //250 ms de delai entre les tonalites de lalarme
 
 //=============================================================================================
 
@@ -108,7 +115,7 @@ void setup()
   digitalWrite(LUMIERES, LOW);
   noTone(BUZZER);
 
-  MOTOR_SetSpeed(LEFT, 0); // Moteur gauche
+  MOTOR_SetSpeed(LEFT, 0);  // Moteur gauche
   MOTOR_SetSpeed(RIGHT, 0); // Moteur droit
 
   delay(1500);
@@ -118,50 +125,33 @@ void setup()
 
 void loop()
 {
-  if(ROBUS_IsBumper(0))
+  if (ROBUS_IsBumper(1))
   {
-  }
-  if(ROBUS_IsBumper(1))
-  {
-    Action(2000, 5, 2, 2000);
-  }
-  if(ROBUS_IsBumper(3))
-  {
-    //FaireParcours(3);
-    Detection();
+    Effrayer(DUREE_EFFRAYER, FREQUENCE_LUMIERES, FREQUENCE_ALARME, DUREE_POMPE);
   }
 
-  if(ROBUS_IsBumper(2))
+  if (ROBUS_IsBumper(3))
   {
-    if(EnSuivi)
+    if (EnPatrouille)
     {
-      EnSuivi = false;
+      EnPatrouille = false;
     }
     else
     {
-      EnSuivi = true;
+      EnPatrouille = true;
     }
     delay(250);
   }
 
-  if(EnSuivi)
+  if (EnPatrouille)
   {
     Suivre();
-
-    //Test 90 pour detection
-    // if(millis() > temps_initial + DELAI_TEST && DetectionFaite == 0)
-    // {
-    //   Tourner(1, 89);
-    //   delay(500);
-    //   Tourner(1, 89);
-
-    //   DetectionFaite = 1;
-    // }
+    Detection();
   }
   else
   {
-    MOTOR_SetSpeed(0,0);
-    MOTOR_SetSpeed(1,0);
+    MOTOR_SetSpeed(0, 0);
+    MOTOR_SetSpeed(1, 0);
   }
 }
 
@@ -201,96 +191,115 @@ void Suivre()
 //=============================================================================================
 
 //Fonction qui detecte si un intrus est proche du robot et qui enclenche l action
-void Detection(void)
+void Detection()
 {
-  float DistAvant = LireDistance(1);
-  float DistGauche = LireDistance(0);
+  float distAvant = LireDistance(1);
+  float distGauche = LireDistance(0);
 
-  Serial.println(DistGauche);
-  
+  Serial.println(distGauche);
+
   //Si l intrus est devant
-  if(DistAvant >= 15 && DistAvant <= 60)
+  if (distAvant >= DIST_DETECTION_MIN && distAvant <= DIST_DETECTION_MAX)
   {
-    Action(2000, 30, 3, 2000);
+    Effrayer(DUREE_EFFRAYER, FREQUENCE_LUMIERES, FREQUENCE_ALARME, DUREE_POMPE);
   }
 
   //Si l intrus est a gauche
-  if(DistGauche >= 15 && DistGauche <= 60)
+  if (distGauche >= DIST_DETECTION_MIN && distGauche <= DIST_DETECTION_MAX)
   {
     Tourner(-1, 90);
-    DistAvant = LireDistance(1);
-    if(DistAvant >= 15 && DistAvant <= 60)
-    {
-      Action(2000, 30, 3, 2000);
-    }
+    delay(250);
 
-     Tourner(1, 90);
-  } 
+    // DistAvant = LireDistance(1);
+    // if (DistAvant >= 15 && DistAvant <= 60)
+    // {
+    Effrayer(DUREE_EFFRAYER, FREQUENCE_LUMIERES, FREQUENCE_ALARME, DUREE_POMPE);
+    // }
+
+    Tourner(1, 90);
+    delay(250);
+  }
 }
 
 //=============================================================================================
 
 //Fonction qui actionne le jet deau, la lumiere et l alarme
-void Action(uint32_t duree, uint32_t frequenceStrobe, uint32_t frequenceAlarme, uint32_t dureePompe)
+void Effrayer(uint32_t duree, uint32_t frequenceLumieres, uint32_t frequenceAlarme, uint32_t dureePompe)
 {
-  int jetTire = 0;
-  uint32_t tempsDepart = 0;
-
-  int lightState = 0;
-  uint32_t lightChangeTime = 0;
-
+  //La pompe est activee
+  bool pompeAretee = false;
   digitalWrite(POMPE, HIGH);
 
-  //tone(BUZZER, 1000);
-  uint32_t buzzerChangeTime = millis();
-  int buzzerState = 1;
+  //Les lumieres sont activees
+  uint32_t tempsChangementLumieres = millis();
+  int etatLumiere = 1;
 
-  //LightCTRL(ON, LumOutput);
-  lightChangeTime = millis();
-  lightState = 1;
+  //L alarme est activee
+  uint32_t tempsChangementAlarme = millis();
+  int etatAlarme = 1;
 
-  tempsDepart = millis();
-  
-  while((millis() - tempsDepart) < duree)
+  uint32_t tempsDepart = millis();
+
+  while ((millis() - tempsDepart) < duree)
   {
-    Serial.println(millis() - tempsDepart);
+    //Serial.println(millis() - tempsDepart);
 
-    if(( millis() - tempsDepart ) > dureePompe && !jetTire)
+    if ((millis() - tempsDepart) > dureePompe && !pompeAretee)
     {
-      //Le jet d eau est arrete
+      //Le jet d eau arrete
       digitalWrite(POMPE, LOW);
-      jetTire = 1;
+      pompeAretee = true;
     }
 
-    nonBlockingStrobe(&lightChangeTime, frequenceStrobe, &lightState);
-    nonBlockingAlarme(&buzzerChangeTime, frequenceAlarme, &buzzerState);
+    ClignoterDispositif(LUMIERES , &tempsChangementLumieres, frequenceLumieres, &etatLumiere);
+    ClignoterDispositif(BUZZER, &tempsChangementAlarme, frequenceAlarme, &etatAlarme);
+
+    // nonBlockingStrobe(&tempsChangementLumieres, frequenceStrobe, &etatLumiere);
+    // nonBlockingAlarme(&tempsChangementAlarme, frequenceAlarme, &etatAlarme);
   }
 
+  //Les dispositifs sont desactives a la fin
   digitalWrite(POMPE, LOW);
   digitalWrite(LUMIERES, LOW);
   noTone(BUZZER);
 
-  return;
+  delay(500);
 }
 
 //=============================================================================================
 
-//Fonction controle des lumieres
-void nonBlockingStrobe(uint32_t *dernierTempsChangement, int  pulseParSeconde, int *etatLumieres)
+//Fonction controle le clignotement d un dispositif de lumieres ou d alarme sonore
+void ClignoterDispositif(int dispositif, uint32_t *dernierTempsChangement, int frequence, int *etat)
 {
-  uint32_t delaiLumieres = 1000 / (2* pulseParSeconde);
+  uint32_t delai = 1000 / (2 * frequence); //La moitie d une periode en secondes avec frequence en Hz
 
-  if(( millis() - *dernierTempsChangement ) > delaiLumieres)
+  if ((millis() - *dernierTempsChangement) > delai)
   {
-    if(!*etatLumieres)
+    if (!*etat)
     {
-      digitalWrite(LUMIERES, HIGH);
-      *etatLumieres = ON;
+      switch (dispositif)
+      {
+      case LUMIERES : digitalWrite(LUMIERES, HIGH);
+        break;
+      
+      case BUZZER : tone(BUZZER, 2000);
+        break;
+      }
+
+      *etat = ON;
     }
     else
     {
-      digitalWrite(LUMIERES, LOW);
-      *etatLumieres = OFF;
+      switch (dispositif)
+      {
+      case LUMIERES : digitalWrite(LUMIERES, LOW);
+        break;
+      
+      case BUZZER : tone(BUZZER, 1000);
+        break;
+      }
+
+      *etat = OFF;
     }
 
     *dernierTempsChangement = millis();
@@ -299,46 +308,69 @@ void nonBlockingStrobe(uint32_t *dernierTempsChangement, int  pulseParSeconde, i
 
 //=============================================================================================
 
+//Fonction controle des lumieres
+// void nonBlockingStrobe(uint32_t *dernierTempsChangement, int frequenceLumiere, int *etatLumieres)
+// {
+//   uint32_t delaiLumieres = 1000 / (2 * frequenceLumiere);
+
+//   if ((millis() - *dernierTempsChangement) > delaiLumieres)
+//   {
+//     if (!*etatLumieres)
+//     {
+//       digitalWrite(LUMIERES, HIGH);
+//       *etatLumieres = ON;
+//     }
+//     else
+//     {
+//       digitalWrite(LUMIERES, LOW);
+//       *etatLumieres = OFF;
+//     }
+
+//     *dernierTempsChangement = millis();
+//   }
+// }
+
+//=============================================================================================
+
 //Fonction de controle de l alarme
-void nonBlockingAlarme(uint32_t *lastChangeTime, int changeFrequency, int *buzzerState)
-{
-  uint32_t buzzerDelay = 1000 / (2 * changeFrequency);
+// void nonBlockingAlarme(uint32_t *dernierTempsChangement, int frequenceAlarme, int *etatBuzzer)
+// {
+//   uint32_t delaiAlarme = 1000 / (2 * frequenceAlarme);
 
-  if(( millis() - *lastChangeTime ) >  buzzerDelay)
-  {
-    if(!*buzzerState)
-    {
-      tone(BUZZER, 2000);
-      *buzzerState = ON;
-    }
-    else
-    {
-      //tone(BUZZER, 1000);
-      noTone(BUZZER);
-      *buzzerState = OFF;
-    }
+//   if ((millis() - *dernierTempsChangement) > delaiAlarme)
+//   {
+//     if (!*etatBuzzer)
+//     {
+//       tone(BUZZER, 2000);
+//       *etatBuzzer = ON;
+//     }
+//     else
+//     {
+//       tone(BUZZER, 1000);
+//       *etatBuzzer = OFF;
+//     }
 
-    *lastChangeTime = millis();
-  }
-}
+//     *dernierTempsChangement = millis();
+//   }
+// }
 
 //=============================================================================================
 
 //Fonction de backup qui fait un parcours rectangle
 void FaireParcours(int nbTours)
 {
-    for (int i = 0; i < nbTours; i++)
-    {
-      facteurAcceleration = 0.5;
-      Mouvement(120);
-      Tourner(1, 89);
-      Mouvement(100);
-      Tourner(1, 89);
-      Mouvement(120);
-      Tourner(1, 88);
-      Mouvement(100);
-      Tourner(1, 89);
-    }
+  for (int i = 0; i < nbTours; i++)
+  {
+    facteurAcceleration = 0.5;
+    Mouvement(120);
+    Tourner(1, 89);
+    Mouvement(100);
+    Tourner(1, 89);
+    Mouvement(120);
+    Tourner(1, 88);
+    Mouvement(100);
+    Tourner(1, 89);
+  }
 }
 
 //=============================================================================================
@@ -346,25 +378,25 @@ void FaireParcours(int nbTours)
 //Fonction de backup des lumieres
 void StrobeEffect(int PulseParSec, int Duree)
 {
-  if(! OutputSetup)
+  if (!OutputSetup)
   {
     pinMode(LUMIERES, OUTPUT);
-    OutputSetup = true;  
+    OutputSetup = true;
     Serial.println("pinout defined \n");
   }
 
   digitalWrite(LUMIERES, LOW);
-  for(int t = 0; t < Duree; t++)
+  for (int t = 0; t < Duree; t++)
   {
-    for(int i = 0; i < PulseParSec; i++)
+    for (int i = 0; i < PulseParSec; i++)
     {
       digitalWrite(LUMIERES, HIGH);
       Serial.println("strobe on \n");
-      delay(1000/(2*PulseParSec));
+      delay(1000 / (2 * PulseParSec));
 
       digitalWrite(LUMIERES, LOW);
       Serial.println("strobe off \n");
-      delay(1000/(2*PulseParSec));
+      delay(1000 / (2 * PulseParSec));
     }
   }
 }
@@ -387,9 +419,9 @@ void SonnerAlarme()
 
     delay(250);
     // AX_BuzzerOFF();
-    }
+  }
 
-    noTone(BUZZER);
+  noTone(BUZZER);
 }
 
 //=============================================================================================
