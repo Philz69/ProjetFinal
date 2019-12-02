@@ -9,7 +9,7 @@ void Detection();
 
 void Effrayer(uint32_t duree, uint32_t frequenceStrobe, uint32_t frequenceAlarme, uint32_t dureePompe);
 
-void ClignoterDispositif(int dispositif, uint32_t *dernierTempsChangement, int frequence, int *etat);
+void ClignoterDispositif(int dispositif, uint32_t *dernierTempsChangement, int frequence, bool *etat);
 
 // void nonBlockingStrobe(uint32_t *dernierTempsChangement, int pulseParSeconde, int *etatLumieres);
 // void nonBlockingAlarme(uint32_t *lastChangeTime, int changeFrequency, int *buzzerState);
@@ -125,12 +125,12 @@ void setup()
 
 void loop()
 {
-  if (ROBUS_IsBumper(1))
+  if (ROBUS_IsBumper(RIGHT))
   {
     Effrayer(DUREE_EFFRAYER, FREQUENCE_LUMIERES, FREQUENCE_ALARME, DUREE_POMPE);
   }
 
-  if (ROBUS_IsBumper(3))
+  if (ROBUS_IsBumper(REAR))
   {
     if (EnPatrouille)
     {
@@ -232,11 +232,11 @@ void Effrayer(uint32_t duree, uint32_t frequenceLumieres, uint32_t frequenceAlar
 
   //Les lumieres sont activees
   uint32_t tempsChangementLumieres = millis();
-  int etatLumiere = 1;
+  bool etatLumiere = true;
 
   //L alarme est activee
   uint32_t tempsChangementAlarme = millis();
-  int etatAlarme = 1;
+  bool etatAlarme = true;
 
   uint32_t tempsDepart = millis();
 
@@ -269,13 +269,13 @@ void Effrayer(uint32_t duree, uint32_t frequenceLumieres, uint32_t frequenceAlar
 //=============================================================================================
 
 //Fonction controle le clignotement d un dispositif de lumieres ou d alarme sonore
-void ClignoterDispositif(int dispositif, uint32_t *dernierTempsChangement, int frequence, int *etat)
+void ClignoterDispositif(int dispositif, uint32_t *dernierTempsChangement, int frequence, bool *etat)
 {
-  uint32_t delai = 1000 / (2 * frequence); //La moitie d une periode en secondes avec frequence en Hz
+  uint32_t delai = 1000.0 / (2 * frequence); //La moitie d une periode en secondes avec frequence en Hz
 
   if ((millis() - *dernierTempsChangement) > delai)
   {
-    if (!*etat)
+    if (*etat)
     {
       switch (dispositif)
       {
@@ -286,7 +286,7 @@ void ClignoterDispositif(int dispositif, uint32_t *dernierTempsChangement, int f
         break;
       }
 
-      *etat = ON;
+      *etat = false;
     }
     else
     {
@@ -299,7 +299,7 @@ void ClignoterDispositif(int dispositif, uint32_t *dernierTempsChangement, int f
         break;
       }
 
-      *etat = OFF;
+      *etat = true;
     }
 
     *dernierTempsChangement = millis();
