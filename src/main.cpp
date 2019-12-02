@@ -63,7 +63,7 @@ float FonctionPID(float distMotDroite, float distMotGauche);
 #define DIST_DETECTION_MAX 60 //La distance minimale de detection d intrus en centimetres
 
 #define DUREE_EFFRAYER 2000 //Le temps pendant lequel le robot effraie un intrus avec lumieres et alarme sonore
-#define DUREE_POMPE 2000 //Le temps pendant lequel le robot tire un jet d eau. <= DUREE_EFFRAYER
+#define DUREE_POMPE 2000 //Le temps pendant lequel le robot tire un jet d eau. < DUREE_EFFRAYER
 #define FREQUENCE_LUMIERES 5 //Frequence du clignotement des lumieres en Hz
 #define FREQUENCE_ALARME 2 //Frequence du clignotement de l alarme sonore en Hz
 
@@ -201,12 +201,18 @@ void Detection()
   //Si l intrus est devant
   if (distAvant >= DIST_DETECTION_MIN && distAvant <= DIST_DETECTION_MAX)
   {
+    MOTOR_SetSpeed(LEFT, 0);
+    MOTOR_SetSpeed(RIGHT, 0);
+
     Effrayer(DUREE_EFFRAYER, FREQUENCE_LUMIERES, FREQUENCE_ALARME, DUREE_POMPE);
   }
 
   //Si l intrus est a gauche
   if (distGauche >= DIST_DETECTION_MIN && distGauche <= DIST_DETECTION_MAX)
   {
+    MOTOR_SetSpeed(LEFT, 0);
+    MOTOR_SetSpeed(RIGHT, 0);
+
     Tourner(-1, 90);
     delay(250);
 
@@ -232,7 +238,7 @@ void Effrayer(uint32_t duree, uint32_t frequenceLumieres, uint32_t frequenceAlar
 
   //Les lumieres sont activees
   uint32_t tempsChangementLumieres = millis();
-  bool etatLumiere = true;
+  bool etatLumieres = true;
 
   //L alarme est activee
   uint32_t tempsChangementAlarme = millis();
@@ -251,7 +257,7 @@ void Effrayer(uint32_t duree, uint32_t frequenceLumieres, uint32_t frequenceAlar
       pompeAretee = true;
     }
 
-    ClignoterDispositif(LUMIERES , &tempsChangementLumieres, frequenceLumieres, &etatLumiere);
+    ClignoterDispositif(LUMIERES , &tempsChangementLumieres, frequenceLumieres, &etatLumieres);
     ClignoterDispositif(BUZZER, &tempsChangementAlarme, frequenceAlarme, &etatAlarme);
 
     // nonBlockingStrobe(&tempsChangementLumieres, frequenceStrobe, &etatLumiere);
