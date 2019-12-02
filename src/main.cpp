@@ -63,7 +63,7 @@ float FonctionPID(float distMotDroite, float distMotGauche);
 #define DIST_DETECTION_MAX 60 //La distance minimale de detection d intrus en centimetres
 
 #define DUREE_EFFRAYER 2000 //Le temps pendant lequel le robot effraie un intrus avec lumieres et alarme sonore
-#define DUREE_POMPE 2000 //Le temps pendant lequel le robot tire un jet d eau. < DUREE_EFFRAYER
+#define DUREE_POMPE 500 //Le temps pendant lequel le robot tire un jet d eau. < DUREE_EFFRAYER
 #define FREQUENCE_LUMIERES 5 //Frequence du clignotement des lumieres en Hz
 #define FREQUENCE_ALARME 2 //Frequence du clignotement de l alarme sonore en Hz
 
