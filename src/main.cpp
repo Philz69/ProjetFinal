@@ -62,7 +62,7 @@ float FonctionPID(float distMotDroite, float distMotGauche);
 #define OFF false
 
 #define DIST_DETECTION_MIN 15 //La distance minimale de detection d intrus en centimetres
-#define DIST_DETECTION_MAX 60 //La distance minimale de detection d intrus en centimetres
+#define DIST_DETECTION_MAX 60 //La distance maximale de detection d intrus en centimetres
 
 #define DUREE_EFFRAYER 2000  //Le temps pendant lequel le robot effraie un intrus avec lumieres et alarme sonore
 #define DUREE_POMPE 500      //Le temps pendant lequel le robot tire un jet d eau. < DUREE_EFFRAYER
@@ -181,17 +181,17 @@ void Suivre()
   if (capteurG == HIGH)
   {
     MOTOR_SetSpeed(LEFT, 0.1);
-    MOTOR_SetSpeed(RIGHT, 0.3);
+    MOTOR_SetSpeed(RIGHT, 0.2);
   }
   else if (capteurD == HIGH)
   {
-    MOTOR_SetSpeed(LEFT, 0.3);
+    MOTOR_SetSpeed(LEFT, 0.5);
     MOTOR_SetSpeed(RIGHT, 0.1);
   }
   else
   {
-    MOTOR_SetSpeed(LEFT, 0.1);
-    MOTOR_SetSpeed(RIGHT, 0.1);
+    MOTOR_SetSpeed(LEFT, 0.15);
+    MOTOR_SetSpeed(RIGHT, 0.15);
   }
 }
 
