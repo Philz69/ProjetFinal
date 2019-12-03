@@ -11,6 +11,8 @@ void Effrayer(uint32_t duree, uint32_t frequenceStrobe, uint32_t frequenceAlarme
 
 void ClignoterDispositif(int dispositif, uint32_t *dernierTempsChangement, int frequence, bool *etat);
 
+void TirerEau();
+
 // void nonBlockingStrobe(uint32_t *dernierTempsChangement, int pulseParSeconde, int *etatLumieres);
 // void nonBlockingAlarme(uint32_t *lastChangeTime, int changeFrequency, int *buzzerState);
 
@@ -62,10 +64,10 @@ float FonctionPID(float distMotDroite, float distMotGauche);
 #define DIST_DETECTION_MIN 15 //La distance minimale de detection d intrus en centimetres
 #define DIST_DETECTION_MAX 60 //La distance minimale de detection d intrus en centimetres
 
-#define DUREE_EFFRAYER 2000 //Le temps pendant lequel le robot effraie un intrus avec lumieres et alarme sonore
-#define DUREE_POMPE 500 //Le temps pendant lequel le robot tire un jet d eau. < DUREE_EFFRAYER
+#define DUREE_EFFRAYER 2000  //Le temps pendant lequel le robot effraie un intrus avec lumieres et alarme sonore
+#define DUREE_POMPE 500      //Le temps pendant lequel le robot tire un jet d eau. < DUREE_EFFRAYER
 #define FREQUENCE_LUMIERES 5 //Frequence du clignotement des lumieres en Hz
-#define FREQUENCE_ALARME 2 //Frequence du clignotement de l alarme sonore en Hz
+#define FREQUENCE_ALARME 2   //Frequence du clignotement de l alarme sonore en Hz
 
 //=============================================================================================
 
@@ -125,6 +127,11 @@ void setup()
 
 void loop()
 {
+  if (ROBUS_IsBumper(LEFT))
+  {
+    TirerEau();
+  }
+
   if (ROBUS_IsBumper(RIGHT))
   {
     Effrayer(DUREE_EFFRAYER, FREQUENCE_LUMIERES, FREQUENCE_ALARME, DUREE_POMPE);
@@ -257,7 +264,7 @@ void Effrayer(uint32_t duree, uint32_t frequenceLumieres, uint32_t frequenceAlar
       pompeAretee = true;
     }
 
-    ClignoterDispositif(LUMIERES , &tempsChangementLumieres, frequenceLumieres, &etatLumieres);
+    ClignoterDispositif(LUMIERES, &tempsChangementLumieres, frequenceLumieres, &etatLumieres);
     ClignoterDispositif(BUZZER, &tempsChangementAlarme, frequenceAlarme, &etatAlarme);
 
     // nonBlockingStrobe(&tempsChangementLumieres, frequenceStrobe, &etatLumiere);
@@ -285,10 +292,12 @@ void ClignoterDispositif(int dispositif, uint32_t *dernierTempsChangement, int f
     {
       switch (dispositif)
       {
-      case LUMIERES : digitalWrite(LUMIERES, HIGH);
+      case LUMIERES:
+        digitalWrite(LUMIERES, HIGH);
         break;
-      
-      case BUZZER : tone(BUZZER, 2000);
+
+      case BUZZER:
+        tone(BUZZER, 2000);
         break;
       }
 
@@ -298,10 +307,12 @@ void ClignoterDispositif(int dispositif, uint32_t *dernierTempsChangement, int f
     {
       switch (dispositif)
       {
-      case LUMIERES : digitalWrite(LUMIERES, LOW);
+      case LUMIERES:
+        digitalWrite(LUMIERES, LOW);
         break;
-      
-      case BUZZER : tone(BUZZER, 1000);
+
+      case BUZZER:
+        tone(BUZZER, 1000);
         break;
       }
 
@@ -310,6 +321,17 @@ void ClignoterDispositif(int dispositif, uint32_t *dernierTempsChangement, int f
 
     *dernierTempsChangement = millis();
   }
+}
+
+//=============================================================================================
+
+//Fonction vide la pompe en tirant un jet d'eau
+void TirerEau()
+{
+  delay(DUREE_POMPE);
+  digitalWrite(POMPE, HIGH);
+  delay(DUREE_POMPE);
+  digitalWrite(POMPE, LOW);
 }
 
 //=============================================================================================
