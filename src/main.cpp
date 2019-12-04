@@ -73,6 +73,9 @@ float FonctionPID(float distMotDroite, float distMotGauche);
 
 float facteurAcceleration;
 
+uint32_t tempsDernierTir = 22000;
+uint32_t delaiTir = 23000;
+
 float distTotMotDroite = 0;
 float distTotMotGauche = 0;
 
@@ -81,11 +84,14 @@ float vitesseTourner = 0.2;
 bool OutputSetup = false; // pour ne pas definir continuellement l'entree de la lumiere
 
 bool EnPatrouille = false; //Si le robot patrouille le jardin presentement
+bool EnSuivi = false; //Si le robot patrouille le jardin presentement
 
 //Capteurs de ligne
 int capteurG;
 int capteurM;
 int capteurD;
+
+bool ATire = false;
 
 //=============================================================================================
 
@@ -134,31 +140,56 @@ void loop()
 
   if (ROBUS_IsBumper(RIGHT))
   {
-    Effrayer(DUREE_EFFRAYER, FREQUENCE_LUMIERES, FREQUENCE_ALARME, DUREE_POMPE);
+    //Detection();
+    EnPatrouille = false;
+    //Effrayer(DUREE_EFFRAYER, FREQUENCE_LUMIERES, FREQUENCE_ALARME, DUREE_POMPE);
+  }
+
+  if (ROBUS_IsBumper(FRONT))
+  {
+    if (EnSuivi)
+    {
+      EnSuivi = false;
+    }
+    else
+    {
+      EnSuivi = true;
+    }
+    delay(1000);
   }
 
   if (ROBUS_IsBumper(REAR))
   {
-    if (EnPatrouille)
+    /*if (EnPatrouille)
     {
       EnPatrouille = false;
     }
     else
     {
       EnPatrouille = true;
+      ATire = false;
     }
-    delay(250);
+    delay(1000);*/
+    EnPatrouille= true;
   }
 
   if (EnPatrouille)
   {
     Suivre();
-    Detection();
+    if(abs((millis() - tempsDernierTir)) > delaiTir )
+    {
+      Detection();
+    }
+
+  }
+  else if (EnSuivi)
+  {
+    Suivre();
   }
   else
   {
-    MOTOR_SetSpeed(0, 0);
-    MOTOR_SetSpeed(1, 0);
+    MOTOR_SetSpeed(LEFT, 0);
+    MOTOR_SetSpeed(RIGHT, 0);
   }
 }
 
@@ -206,13 +237,13 @@ void Detection()
   Serial.println(distGauche);
 
   //Si l intrus est devant
-  if (distAvant >= DIST_DETECTION_MIN && distAvant <= DIST_DETECTION_MAX)
+  /*if (distAvant >= DIST_DETECTION_MIN && distAvant <= DIST_DETECTION_MAX)
   {
     MOTOR_SetSpeed(LEFT, 0);
     MOTOR_SetSpeed(RIGHT, 0);
 
     Effrayer(DUREE_EFFRAYER, FREQUENCE_LUMIERES, FREQUENCE_ALARME, DUREE_POMPE);
-  }
+  }*/
 
   //Si l intrus est a gauche
   if (distGauche >= DIST_DETECTION_MIN && distGauche <= DIST_DETECTION_MAX)
@@ -275,6 +306,9 @@ void Effrayer(uint32_t duree, uint32_t frequenceLumieres, uint32_t frequenceAlar
   digitalWrite(POMPE, LOW);
   digitalWrite(LUMIERES, LOW);
   noTone(BUZZER);
+
+  ATire = true;
+  tempsDernierTir = millis(); 
 
   delay(500);
 }
