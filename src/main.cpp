@@ -5,6 +5,7 @@
 //=============================================================================================
 
 void Suivre();
+
 void Detection();
 
 void Effrayer(uint32_t duree, uint32_t frequenceStrobe, uint32_t frequenceAlarme, uint32_t dureePompe);
@@ -12,9 +13,6 @@ void Effrayer(uint32_t duree, uint32_t frequenceStrobe, uint32_t frequenceAlarme
 void ClignoterDispositif(int dispositif, uint32_t *dernierTempsChangement, int frequence, bool *etat);
 
 void TirerEau();
-
-// void nonBlockingStrobe(uint32_t *dernierTempsChangement, int pulseParSeconde, int *etatLumieres);
-// void nonBlockingAlarme(uint32_t *lastChangeTime, int changeFrequency, int *buzzerState);
 
 //Fonctions en Backup (pas utilisees)
 
@@ -30,36 +28,17 @@ int Mouvement(float dist);
 int Tourner(int dir, int Angle);
 float FonctionPID(float distMotDroite, float distMotGauche);
 
-//
-
-// int lireCouleur();
-// Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
-
 //=============================================================================================
 
-// #define ROUGE 0
-// #define VERT 1
-// #define BLEU 2
-// #define JAUNE 3
-// #define NOIR 4
+#define POMPE 22 //Sortie de l Arduino pour la pompe
 
-// #define redpin 3
-// #define greenpin 5
-// #define bluepin 6
-// #define commonAnode true
+#define BUZZER 8    //Sortie de l Arduino pour le buzzer
+#define LUMIERES 24 //Sortie de l Arduino pour la lumiere
 
-#define POMPE 22 //Sortie de l'Arduino pour la pompe
-
-#define BUZZER 8    //Sortie de l'Arduino pour le buzzer
-#define LUMIERES 24 //Sortie de l'Arduino pour la lumiere
-
-//Entrees de l'Arduino pour les capteurs de ligne
+//Entrees de l Arduino pour les capteurs de ligne
 #define CAPTEUR_GAUCHE 14
 #define CAPTEUR_MILIEU 15
 #define CAPTEUR_DROIT 16
-
-#define ON true
-#define OFF false
 
 #define DIST_DETECTION_MIN 15 //La distance minimale de detection d intrus en centimetres
 #define DIST_DETECTION_MAX 60 //La distance maximale de detection d intrus en centimetres
@@ -73,9 +52,6 @@ float FonctionPID(float distMotDroite, float distMotGauche);
 
 float facteurAcceleration;
 
-uint32_t tempsDernierTir = 22000;
-uint32_t delaiTir = 23000;
-
 float distTotMotDroite = 0;
 float distTotMotGauche = 0;
 
@@ -84,33 +60,18 @@ float vitesseTourner = 0.2;
 bool OutputSetup = false; // pour ne pas definir continuellement l'entree de la lumiere
 
 bool EnPatrouille = false; //Si le robot patrouille le jardin presentement
-bool EnSuivi = false; //Si le robot patrouille le jardin presentement
 
 //Capteurs de ligne
 int capteurG;
 int capteurM;
 int capteurD;
 
-bool ATire = false;
-
 //=============================================================================================
 
 void setup()
 {
-  // put your setup code here, to run once:
   BoardInit();
   Serial.begin(9600);
-  // if (tcs.begin())
-  // {
-  //   Serial.println("Found sensor");
-  // }
-  // else
-  // {
-  //   Serial.println("No TCS34725 found ... check your connections");
-  // }
-  // pinMode(redpin, OUTPUT);
-  // pinMode(greenpin, OUTPUT);
-  // pinMode(bluepin, OUTPUT);
 
   pinMode(CAPTEUR_GAUCHE, INPUT);
   pinMode(CAPTEUR_MILIEU, INPUT);
@@ -140,51 +101,26 @@ void loop()
 
   if (ROBUS_IsBumper(RIGHT))
   {
-    //Detection();
-    EnPatrouille = false;
-    //Effrayer(DUREE_EFFRAYER, FREQUENCE_LUMIERES, FREQUENCE_ALARME, DUREE_POMPE);
-  }
-
-  if (ROBUS_IsBumper(FRONT))
-  {
-    if (EnSuivi)
-    {
-      EnSuivi = false;
-    }
-    else
-    {
-      EnSuivi = true;
-    }
-    delay(1000);
+    Effrayer(DUREE_EFFRAYER, FREQUENCE_LUMIERES, FREQUENCE_ALARME, DUREE_POMPE);
   }
 
   if (ROBUS_IsBumper(REAR))
   {
-    /*if (EnPatrouille)
+    if (EnPatrouille)
     {
       EnPatrouille = false;
     }
     else
     {
       EnPatrouille = true;
-      ATire = false;
     }
-    delay(1000);*/
-    EnPatrouille= true;
+    delay(1000);
   }
 
   if (EnPatrouille)
   {
     Suivre();
-    if(abs((millis() - tempsDernierTir)) > delaiTir )
-    {
-      Detection();
-    }
-
-  }
-  else if (EnSuivi)
-  {
-    Suivre();
+    Detection();
   }
   else
   {
@@ -237,13 +173,13 @@ void Detection()
   Serial.println(distGauche);
 
   //Si l intrus est devant
-  /*if (distAvant >= DIST_DETECTION_MIN && distAvant <= DIST_DETECTION_MAX)
+  if (distAvant >= DIST_DETECTION_MIN && distAvant <= DIST_DETECTION_MAX)
   {
     MOTOR_SetSpeed(LEFT, 0);
     MOTOR_SetSpeed(RIGHT, 0);
 
     Effrayer(DUREE_EFFRAYER, FREQUENCE_LUMIERES, FREQUENCE_ALARME, DUREE_POMPE);
-  }*/
+  }
 
   //Si l intrus est a gauche
   if (distGauche >= DIST_DETECTION_MIN && distGauche <= DIST_DETECTION_MAX)
@@ -297,18 +233,12 @@ void Effrayer(uint32_t duree, uint32_t frequenceLumieres, uint32_t frequenceAlar
 
     ClignoterDispositif(LUMIERES, &tempsChangementLumieres, frequenceLumieres, &etatLumieres);
     ClignoterDispositif(BUZZER, &tempsChangementAlarme, frequenceAlarme, &etatAlarme);
-
-    // nonBlockingStrobe(&tempsChangementLumieres, frequenceStrobe, &etatLumiere);
-    // nonBlockingAlarme(&tempsChangementAlarme, frequenceAlarme, &etatAlarme);
   }
 
   //Les dispositifs sont desactives a la fin
   digitalWrite(POMPE, LOW);
   digitalWrite(LUMIERES, LOW);
   noTone(BUZZER);
-
-  ATire = true;
-  tempsDernierTir = millis(); 
 
   delay(500);
 }
@@ -367,54 +297,6 @@ void TirerEau()
   delay(DUREE_POMPE);
   digitalWrite(POMPE, LOW);
 }
-
-//=============================================================================================
-
-//Fonction controle des lumieres
-// void nonBlockingStrobe(uint32_t *dernierTempsChangement, int frequenceLumiere, int *etatLumieres)
-// {
-//   uint32_t delaiLumieres = 1000 / (2 * frequenceLumiere);
-
-//   if ((millis() - *dernierTempsChangement) > delaiLumieres)
-//   {
-//     if (!*etatLumieres)
-//     {
-//       digitalWrite(LUMIERES, HIGH);
-//       *etatLumieres = ON;
-//     }
-//     else
-//     {
-//       digitalWrite(LUMIERES, LOW);
-//       *etatLumieres = OFF;
-//     }
-
-//     *dernierTempsChangement = millis();
-//   }
-// }
-
-//=============================================================================================
-
-//Fonction de controle de l alarme
-// void nonBlockingAlarme(uint32_t *dernierTempsChangement, int frequenceAlarme, int *etatBuzzer)
-// {
-//   uint32_t delaiAlarme = 1000 / (2 * frequenceAlarme);
-
-//   if ((millis() - *dernierTempsChangement) > delaiAlarme)
-//   {
-//     if (!*etatBuzzer)
-//     {
-//       tone(BUZZER, 2000);
-//       *etatBuzzer = ON;
-//     }
-//     else
-//     {
-//       tone(BUZZER, 1000);
-//       *etatBuzzer = OFF;
-//     }
-
-//     *dernierTempsChangement = millis();
-//   }
-// }
 
 //=============================================================================================
 
@@ -632,52 +514,5 @@ float FonctionPID(float distMotDroite, float distMotGauche)
 
   return vitMot1;
 }
-
-//=============================================================================================
-
-//Fonction de detection de couleur avec capteurs de couleur
-// int lireCouleur()
-// {
-//   uint16_t clear, red, green, blue;
-//   tcs.setInterrupt(false);
-//   tcs.getRawData(&red, &green, &blue, &clear);
-//   tcs.setInterrupt(true);
-//   float r, g, b, sum;
-//   sum = clear;
-//   r = red / sum;
-//   g = green / sum;
-//   b = blue / sum;
-//   r = r * 256.0;
-//   b = b * 256.0;
-//   g = g * 256.0;
-//   /*Serial.print("\tR:\t");   Serial.print((int)red);
-//  Serial.print("\tg:\t");   Serial.print((int)green);
-//  Serial.print("\tb:\t");   Serial.print((int)blue);
-//  Serial.print("\tclear:\t");   Serial.print((int)clear);
-//  Serial.println();*/
-
-//   if (clear < 650)
-//   {
-//     return 4;
-//   }
-//   if (r > 95 && r < 125 && g > 55 && g < 75 && b > 55 && b < 85)
-//   {
-//     return 0;
-//   }
-//   if (r > 40 && r < 60 && g > 85 && g < 105 && b > 80 && b < 100)
-//   {
-//     return 1;
-//   }
-//   if (r > 30 && r < 50 && g > 70 && g < 90 && b > 100 && b < 130)
-//   {
-//     return 2;
-//   }
-//   if (r > 90 && r < 130 && g > 80 && g < 100 && b > 40 && b < 60)
-//   {
-//     return 3;
-//   }
-
-//   return -1;
-// }
 
 //=============================================================================================
